@@ -3,6 +3,26 @@ name: Verify changes
 on: [push, pull_request]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+      - name: npm install and build
+        run: |
+          npm install
+          npm run build
+      - name: Store build-output for later
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-output
+          path: |
+            mustache.js
+            mustache.mjs
+
   tests:
     runs-on: ubuntu-latest
 
@@ -10,6 +30,7 @@ jobs:
       matrix:
         node-version: [8.x, 10.x, 12.x, 14.x, 15.x]
 
+    needs: build
     steps:
       - uses: actions/checkout@v2
         with:
@@ -18,6 +39,10 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Get build-output from build step
+        uses: actions/download-artifact@v2
+        with:
+          name: build-output
       - name: npm install and test
         run: |
           npm install
@@ -30,6 +55,7 @@ jobs:
       matrix:
         node-version: [0.10.x, 0.12.x, 4.x, 6.x]
 
+    needs: build
     steps:
       - uses: actions/checkout@v2
         with:
@@ -38,6 +64,10 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Get build-output from build step
+        uses: actions/download-artifact@v2
+        with:
+          name: build-output
       - name: npm install and test
         run: |
           npm install mocha@3 chai@3
@@ -46,16 +76,17 @@ jobs:
   common-js-usage:
     runs-on: ubuntu-latest
 
+    needs: build
     steps:
       - uses: actions/checkout@v1
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      - name: Prepare to build & package
-        run: |
-          npm ci
-          npm run prepublishOnly
+      - name: Get build-output from build step
+        uses: actions/download-artifact@v2
+        with:
+          name: build-output
       - name: Package, install and test
         run: |
           export ARCHIVE_FILENAME=$(npm pack | tail -n 1)
@@ -69,16 +100,17 @@ jobs:
   esm-usage:
     runs-on: ubuntu-latest
 
+    needs: build
     steps:
       - uses: actions/checkout@v1
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
           node-version: '>=13.2.0'
-      - name: Prepare to build & package
-        run: |
-          npm ci
-          npm run prepublishOnly
+      - name: Get build-output from build step
+        uses: actions/download-artifact@v2
+        with:
+          name: build-output
       - name: Package, install and test
         run: |
           export ARCHIVE_FILENAME=$(npm pack | tail -n 1)
@@ -92,12 +124,17 @@ jobs:
   browser-usage:
     runs-on: ubuntu-latest
 
+    needs: build
     steps:
       - uses: actions/checkout@v1
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
+      - name: Get build-output from build step
+        uses: actions/download-artifact@v2
+        with:
+          name: build-output
       - name: Install and test
         run: |
           npm ci
